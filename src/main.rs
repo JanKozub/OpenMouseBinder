@@ -61,6 +61,13 @@ extern "C" fn event_callback(
             CGEventType::OtherMouseDown => {
                 let button = cg.get_integer_value_field(MOUSE_EVENT_NUMBER);
                 println!("Other mouse button down: button number {}", button);
+
+                if button == 3 {
+                    move_space("left");
+                } else if button == 4 {
+                    move_space("right");
+                }
+
                 null_mut()
             }
             CGEventType::OtherMouseUp => null_mut(),
