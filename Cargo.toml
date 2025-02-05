@@ -1,0 +1,9 @@
+[package]
+name = "OpenMouseBinder"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core-graphics = "0.24.0"
+core-foundation = "0.10.0"
+core-foundation-sys = "0.8.7"
