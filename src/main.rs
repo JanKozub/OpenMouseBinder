@@ -1,20 +1,18 @@
 use core_foundation::runloop::{kCFRunLoopDefaultMode, CFRunLoopGetCurrent, CFRunLoopRun};
-use core_foundation_sys::base::CFAllocatorRef;
-use core_foundation_sys::mach_port::CFMachPortRef;
 use core_foundation_sys::runloop::{CFRunLoopAddSource, CFRunLoopSourceRef};
+use core_foundation_sys::{base::CFAllocatorRef, mach_port::CFMachPortRef};
 use core_graphics::event::{
     CGEvent, CGEventField, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement,
     CGEventTapProxy, CGEventType,
 };
 use core_graphics::sys::CGEventRef;
 use std::os::raw::c_void;
-use std::ptr;
-use std::ptr::null_mut;
+use std::{ptr, ptr::null_mut};
 
 const MOUSE_EVENT_NUMBER: CGEventField = unsafe { std::mem::transmute(3u32) };
 
 // Callback type for the event tap.
-pub type CGEventTapCallBack = extern "C" fn(
+pub type CustomEventTapCallBack = extern "C" fn(
     proxy: CGEventTapProxy,
     type_: CGEventType,
     event: CGEventRef,
@@ -29,7 +27,7 @@ extern "C" {
         place: CGEventTapPlacement,
         options: CGEventTapOptions,
         events_of_interest: u64,
-        callback: CGEventTapCallBack,
+        callback: CustomEventTapCallBack,
         user_info: *mut c_void,
     ) -> CFMachPortRef;
 
@@ -47,8 +45,7 @@ extern "C" {
     fn CGEventCreateCopy(event: CGEventRef) -> CGEventRef;
 }
 
-// Our event tap callback function.
-// It handles mouse movement, left mouse button events, and "other" mouse button events.
+// Custom callback function
 extern "C" fn event_callback(
     _proxy: CGEventTapProxy,
     type_: CGEventType,
