@@ -7,6 +7,7 @@ use core_graphics::event::{
 };
 use core_graphics::sys::CGEventRef;
 use std::os::raw::c_void;
+use std::process::Command;
 use std::{ptr, ptr::null_mut};
 
 const MOUSE_EVENT_NUMBER: CGEventField = unsafe { std::mem::transmute(3u32) };
@@ -70,9 +71,7 @@ extern "C" fn event_callback(
 
 fn main() {
     // Build the event mask for the events we care about.
-    let mask: u64 = (1 << (CGEventType::MouseMoved as u64))
-        | (1 << (CGEventType::LeftMouseDown as u64))
-        | (1 << (CGEventType::LeftMouseUp as u64))
+    let mask: u64 = (1 << (CGEventType::ScrollWheel as u64))
         | (1 << (CGEventType::OtherMouseDown as u64))
         | (1 << (CGEventType::OtherMouseUp as u64));
 
@@ -106,8 +105,28 @@ fn main() {
         let run_loop = CFRunLoopGetCurrent();
         CFRunLoopAddSource(run_loop, run_loop_source, kCFRunLoopDefaultMode);
 
-        println!("Event tap enabled. Listening for mouse events...");
-        // Run the run loop indefinitely.
+        println!("Event tap enabled.");
         CFRunLoopRun();
+    }
+}
+
+fn move_space(direction: &str) {
+    let script = match direction {
+        "left" => "tell application \"System Events\" to key code 123 using control down",
+        "right" => "tell application \"System Events\" to key code 124 using control down",
+        _ => {
+            eprintln!("Invalid direction. Use 'left' or 'right'.");
+            return;
+        }
+    };
+
+    let output = Command::new("osascript")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .expect("Failed to execute AppleScript");
+
+    if !output.status.success() {
+        eprintln!("Error switching spaces: {:?}", output);
     }
 }
