@@ -1,29 +1,17 @@
-use std::ptr;
-use std::os::raw::c_void;
-use std::ptr::null_mut;
-use core_foundation::runloop::{CFRunLoopGetCurrent, CFRunLoopRun, kCFRunLoopDefaultMode};
-use core_foundation_sys::runloop::{CFRunLoopAddSource, CFRunLoopSourceRef};
+use core_foundation::runloop::{kCFRunLoopDefaultMode, CFRunLoopGetCurrent, CFRunLoopRun};
 use core_foundation_sys::base::CFAllocatorRef;
-use core_graphics::event::{CGEvent, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement, CGEventType};
-use core_graphics::event::CGEventField;
+use core_foundation_sys::mach_port::CFMachPortRef;
+use core_foundation_sys::runloop::{CFRunLoopAddSource, CFRunLoopSourceRef};
+use core_graphics::event::{
+    CGEvent, CGEventField, CGEventTapLocation, CGEventTapOptions, CGEventTapPlacement,
+    CGEventTapProxy, CGEventType,
+};
+use core_graphics::sys::CGEventRef;
+use std::os::raw::c_void;
+use std::ptr;
+use std::ptr::null_mut;
 
-const MOUSE_EVENT_NUMBER: CGEventField = unsafe { std::mem::transmute(3u32)};
-
-// Define opaque types for CGEvent and CFMachPort without using unstable extern types.
-#[repr(C)]
-pub struct __CGEvent {
-    _private: [u8; 0],
-}
-
-#[repr(C)]
-pub struct __CFMachPort {
-    _private: [u8; 0],
-}
-
-// Type aliases for pointers to our opaque types.
-pub type CGEventRef = *mut __CGEvent;
-pub type CFMachPortRef = *mut __CFMachPort;
-pub type CGEventTapProxy = *mut c_void;
+const MOUSE_EVENT_NUMBER: CGEventField = unsafe { std::mem::transmute(3u32) };
 
 // Callback type for the event tap.
 pub type CGEventTapCallBack = extern "C" fn(
@@ -59,10 +47,6 @@ extern "C" {
     fn CGEventCreateCopy(event: CGEventRef) -> CGEventRef;
 }
 
-unsafe fn new_cgevent_from_ptr(ptr: CGEventRef) -> CGEvent {
-    std::mem::transmute(ptr)
-}
-
 // Our event tap callback function.
 // It handles mouse movement, left mouse button events, and "other" mouse button events.
 extern "C" fn event_callback(
@@ -73,7 +57,7 @@ extern "C" fn event_callback(
 ) -> CGEventRef {
     unsafe {
         let copy = CGEventCreateCopy(event);
-        let cg: CGEvent = new_cgevent_from_ptr(copy);
+        let cg: CGEvent = std::mem::transmute(copy);
 
         match type_ {
             CGEventType::OtherMouseDown => {
@@ -81,8 +65,8 @@ extern "C" fn event_callback(
                 println!("Other mouse button down: button number {}", button);
                 null_mut()
             }
-            CGEventType::OtherMouseUp => { null_mut() }
-            _ => {event}
+            CGEventType::OtherMouseUp => null_mut(),
+            _ => event,
         }
     }
 }
@@ -107,7 +91,7 @@ fn main() {
         );
 
         if event_tap.is_null() {
-            eprintln!("Failed to create event tap. Make sure Accessibility permissions are enabled!");
+            eprintln!("Failed to create event tap.");
             std::process::exit(1);
         }
 
@@ -130,4 +114,3 @@ fn main() {
         CFRunLoopRun();
     }
 }
-
